@@ -27,4 +27,10 @@ Each phase is independently reviewable. Do not enable live trading as a conseque
 
 ## Environment discovery (2026-09-28)
 
-The workspace is an empty Git repository on `master`. Node.js v24.16.0 is available. `python` and Docker are not on PATH in this environment. The Python package foundation is still authored for Python 3.12+; execution checks require installing/providing Python and Docker availability is a later deployment concern.
+The provided GitHub repository was empty and is now connected on `main`. Node.js v24.16.0 is available. System `python` and Docker are not on PATH; the bundled Python 3.12 runtime is available and is used for local checks. The Python package foundation is authored for Python 3.12+; Docker remains a later deployment concern.
+
+## Progress
+
+- **Phase 0:** architecture, strategy state machines, risk policy, database design and phase plan are committed.
+- **Phase 1 foundation:** validated environment/TOML settings, paper-safe defaults, live-mode rejection, canonical symbol registry/mapping and unit tests are committed.
+- **Phase 2 in progress:** strict confirmed pivots with explicit availability index, close-based structural break/CHoCH and same-candle wick/reclaim sweep primitives are implemented with tests. Regime classification, level clustering, equal highs/lows, retests, quote/bar adapters and broader no-look-ahead replay checks remain outstanding.
