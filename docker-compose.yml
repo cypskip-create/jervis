@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: jervis
+      POSTGRES_USER: jervis
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in the deployment .env file}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U jervis -d jervis"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    ports:
+      - "127.0.0.1:5432:5432"
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    restart: unless-stopped
+    environment:
+      TRADING_PLATFORM_APP_NAME: Jervis Trading Platform
+      TRADING_PLATFORM_MODE: paper
+      TRADING_PLATFORM_GLOBAL_ENABLED: "false"
+      TRADING_PLATFORM_DATABASE_URL: postgresql+psycopg://jervis:${POSTGRES_PASSWORD}@postgres:5432/jervis
+      TRADING_PLATFORM_AUTH_SIGNING_KEY: ${TRADING_PLATFORM_AUTH_SIGNING_KEY:?Set TRADING_PLATFORM_AUTH_SIGNING_KEY in deployment .env}
+      TRADING_PLATFORM_CORS_ORIGINS: http://localhost:8080,http://127.0.0.1:8080
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/v1/health', timeout=3)"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+  dashboard:
+    build:
+      context: ./dashboard
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    depends_on:
+      api:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:8080:8080"
+
+volumes:
+  postgres_data:

@@ -1,10 +1,10 @@
 # Quant MT5 Platform
 
-Research-first multi-market trading platform centered on MT5. The initial repository phase establishes architecture and safety contracts. It does not place broker orders; fresh installs default to paper mode.
+Research-first multi-market trading platform centered on MT5. Dashboard execution remains paper-only by default. Broker demo orders require an explicit call to the optional Windows adapter and a validated demo-account allow-list.
 
 ## Project status
 
-Phases 0 through 9 have a baseline: centralized risk, proposal-only strategy engines, paper execution/reconciliation, deterministic backtesting, an authenticated operations API, and a React dashboard. Broker integration, PostgreSQL production validation, and market-specific session/key-level providers remain future work. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for acceptance criteria and [ARCHITECTURE.md](ARCHITECTURE.md) for service boundaries.
+Phases 0 through 11 have implementation baselines: centralized risk, proposal-only strategy engines, paper execution/reconciliation, deterministic backtesting, an authenticated operations API and React dashboard, an isolated demo-only MT5 adapter, and Docker/operations scaffolding. Broker and deployment acceptance checks remain outstanding. Phase 12 is **NOT READY**; live mode is unsupported and cannot be enabled. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md), the [deployment runbook](docs/DEPLOYMENT_OPERATIONS.md), and the [live readiness review](docs/LIVE_READINESS.md).
 
 ## Requirements
 
@@ -46,6 +46,14 @@ npm run dev
 ```
 
 The initial admin is created interactively; its password is stored as a scrypt hash. API tokens expire after eight hours. Keep the API bound to localhost behind an HTTPS reverse proxy when accessed remotely, restrict CORS to the dashboard origin, and keep the signing key outside source control. Emergency-stop reset requires an administrator. The “disable and close” policy remains unavailable until a broker execution adapter can safely validate and perform closes.
+
+For the optional Docker Compose deployment, see [docs/DEPLOYMENT_OPERATIONS.md](docs/DEPLOYMENT_OPERATIONS.md). Do not expose its loopback-only ports directly to the internet.
+
+## Optional MT5 demo adapter
+
+The adapter is an explicit Python API, isolated from dashboard commands. On Windows, install `pip install -e '.[mt5]'`, log in to the MT5 terminal UI with a demo account, and set `TRADING_PLATFORM_MT5_DEMO_SERVER` plus the positive, comma-separated `TRADING_PLATFORM_MT5_DEMO_ACCOUNT_IDS` allow-list. See the deployment runbook for other configuration. The adapter refuses real accounts, stale quotes, unknown symbols, unsupported volume/fill settings and known duplicate signal tags. It is not validated with a broker and has no durable order-intent ledger; do not use it unattended. All settings continue to reject live mode.
+
+Run `python -m trading_platform.readiness` to see the fail-closed evidence checklist. A completed checklist only permits a separate review and never enables live trading.
 
 ## Backtesting
 

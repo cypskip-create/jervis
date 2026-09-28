@@ -20,6 +20,9 @@ dependencies = [
 postgres = [
   "psycopg[binary]>=3.2,<4",
 ]
+mt5 = [
+  "MetaTrader5>=5.0.5488; platform_system == 'Windows'",
+]
 dev = [
   "httpx>=0.27,<1",
   "pytest>=8.3,<9",
