@@ -47,6 +47,10 @@ npm run dev
 
 The initial admin is created interactively; its password is stored as a scrypt hash. API tokens expire after eight hours. Keep the API bound to localhost behind an HTTPS reverse proxy when accessed remotely, restrict CORS to the dashboard origin, and keep the signing key outside source control. Emergency-stop reset requires an administrator. The “disable and close” policy remains unavailable until a broker execution adapter can safely validate and perform closes.
 
+### MT5 demo observer
+
+On Windows, log in to the allow-listed demo account in MT5, apply migrations, and make sure the local database contains the account and an enabled canonical `XAUUSD` symbol mapping to the broker's gold symbol. Start the read-only strategy observer with `python -m trading_platform.demo_runner`; use `--once` for one snapshot. It reads completed M15/M5 bars, evaluates the gold structural strategy, and records each new M5 state in `market_states`. It prints any proposal candidate but cannot submit orders. Keep the dashboard global execution control disabled. This is an observation harness, not proof of profitability or a substitute for demo validation.
+
 For the optional Docker Compose deployment, see [docs/DEPLOYMENT_OPERATIONS.md](docs/DEPLOYMENT_OPERATIONS.md). Do not expose its loopback-only ports directly to the internet.
 
 ## Optional MT5 demo adapter

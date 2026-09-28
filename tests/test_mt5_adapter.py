@@ -25,6 +25,7 @@ class FakeTerminal:
     TRADE_ACTION_DEAL = 1
     ORDER_TIME_GTC = 0
     ORDER_FILLING_IOC = 1
+    TIMEFRAME_M5 = 5
     POSITION_TYPE_BUY = 0
     POSITION_TYPE_SELL = 1
     TRADE_RETCODE_DONE = 10009
@@ -82,6 +83,19 @@ class FakeTerminal:
     def symbol_select(self, *_: object) -> bool:
         return True
 
+    def copy_rates_from_pos(self, *args: object) -> tuple[dict[str, float | int], ...]:
+        self.bars_request = args
+        return (
+            {
+                "time": 1_782_000_000,
+                "open": 1.0,
+                "high": 1.2,
+                "low": 0.9,
+                "close": 1.1,
+                "tick_volume": 25,
+            },
+        )
+
     def symbol_info(self, _: str) -> object:
         return SimpleNamespace(
             trade_mode=1,
@@ -138,6 +152,17 @@ class MT5AdapterTests(unittest.TestCase):
         terminal = FakeTerminal(terminal_trade_allowed=False)
         adapter = MT5DemoAdapter(MT5Config("Demo-Server", frozenset({42})), terminal)
         self.assertEqual(adapter.connect().login, 42)
+
+    def test_completed_bars_use_mt5_position_one_and_utc_timestamps(self) -> None:
+        terminal = FakeTerminal()
+        adapter = MT5DemoAdapter(MT5Config("Demo-Server", frozenset({42})), terminal)
+        bars = adapter.get_bars("XAUUSDz", "M5", limit=50)
+        self.assertEqual(terminal.bars_request, ("XAUUSDz", terminal.TIMEFRAME_M5, 1, 50))
+        self.assertEqual(len(bars), 1)
+        self.assertEqual(bars[0].symbol, "XAUUSDz")
+        self.assertEqual(bars[0].timeframe, "M5")
+        self.assertEqual(bars[0].candle.close, 1.1)
+        self.assertEqual(bars[0].opened_at.utcoffset(), timedelta(0))
 
     def test_order_is_blocked_when_terminal_algo_trading_is_disabled(self) -> None:
         terminal = FakeTerminal(terminal_trade_allowed=False)

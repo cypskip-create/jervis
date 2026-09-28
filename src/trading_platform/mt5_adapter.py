@@ -17,7 +17,8 @@ from typing import Any
 
 from .domain import TradeProposal
 from .execution import ExternalPosition
-from .market_data import Quote, require_fresh_quote
+from .market_data import MarketBar, Quote, require_fresh_quote
+from .market_structure import Candle
 
 
 class MT5AdapterError(RuntimeError):
@@ -116,6 +117,8 @@ class MT5DemoAdapter:
         )
 
     def get_quote(self, broker_symbol: str) -> Quote:
+        if not self.terminal.symbol_select(broker_symbol, True):
+            raise MT5AdapterError(f"broker symbol is unavailable: {broker_symbol}")
         tick = self.terminal.symbol_info_tick(broker_symbol)
         if tick is None:
             raise MT5AdapterError(f"no quote available for {broker_symbol}")
@@ -129,6 +132,64 @@ class MT5DemoAdapter:
         )
         require_fresh_quote(quote, now=datetime.now(UTC), max_age=self.config.max_quote_age)
         return quote
+
+    def get_bars(self, broker_symbol: str, timeframe: str, *, limit: int) -> tuple[MarketBar, ...]:
+        """Read completed OHLC bars; MT5's current, still-forming bar is excluded."""
+        if limit < 1 or limit > 10_000:
+            raise ValueError("bar limit must be between 1 and 10000")
+        period_names = {
+            "M1": "TIMEFRAME_M1",
+            "M2": "TIMEFRAME_M2",
+            "M3": "TIMEFRAME_M3",
+            "M4": "TIMEFRAME_M4",
+            "M5": "TIMEFRAME_M5",
+            "M6": "TIMEFRAME_M6",
+            "M10": "TIMEFRAME_M10",
+            "M12": "TIMEFRAME_M12",
+            "M15": "TIMEFRAME_M15",
+            "M20": "TIMEFRAME_M20",
+            "M30": "TIMEFRAME_M30",
+            "H1": "TIMEFRAME_H1",
+            "H2": "TIMEFRAME_H2",
+            "H3": "TIMEFRAME_H3",
+            "H4": "TIMEFRAME_H4",
+            "H6": "TIMEFRAME_H6",
+            "H8": "TIMEFRAME_H8",
+            "H12": "TIMEFRAME_H12",
+            "D1": "TIMEFRAME_D1",
+            "W1": "TIMEFRAME_W1",
+            "MN1": "TIMEFRAME_MN1",
+        }
+        constant = period_names.get(timeframe.upper())
+        if constant is None or not hasattr(self.terminal, constant):
+            raise ValueError(f"unsupported MT5 timeframe: {timeframe}")
+        if not self.terminal.symbol_select(broker_symbol, True):
+            raise MT5AdapterError(f"broker symbol is unavailable: {broker_symbol}")
+        rates = self.terminal.copy_rates_from_pos(
+            broker_symbol, getattr(self.terminal, constant), 1, limit
+        )
+        if rates is None:
+            detail = self.terminal.last_error()
+            raise MT5AdapterError(f"MT5 bars unavailable for {broker_symbol} {timeframe}: {detail}")
+        result = []
+        for rate in rates:
+            stamp = datetime.fromtimestamp(int(rate["time"]), tz=UTC)
+            result.append(
+                MarketBar(
+                    symbol=broker_symbol,
+                    timeframe=timeframe.upper(),
+                    opened_at=stamp,
+                    candle=Candle(
+                        float(rate["open"]),
+                        float(rate["high"]),
+                        float(rate["low"]),
+                        float(rate["close"]),
+                    ),
+                    volume=float(rate["tick_volume"]),
+                    source="mt5-demo",
+                )
+            )
+        return tuple(result)
 
     def list_external_positions(
         self, *, account_id: str, symbol_id_by_broker_symbol: dict[str, str]
@@ -199,9 +260,11 @@ class MT5DemoAdapter:
             raise MT5AdapterError(f"broker symbol is not enabled for trading: {broker_symbol}")
         is_buy = proposal.direction.value in {"bullish", "long"}
         trade_mode = symbol.trade_mode
-        if trade_mode == terminal.SYMBOL_TRADE_MODE_CLOSEONLY or (
-            trade_mode == terminal.SYMBOL_TRADE_MODE_LONGONLY and not is_buy
-        ) or (trade_mode == terminal.SYMBOL_TRADE_MODE_SHORTONLY and is_buy):
+        if (
+            trade_mode == terminal.SYMBOL_TRADE_MODE_CLOSEONLY
+            or (trade_mode == terminal.SYMBOL_TRADE_MODE_LONGONLY and not is_buy)
+            or (trade_mode == terminal.SYMBOL_TRADE_MODE_SHORTONLY and is_buy)
+        ):
             raise MT5AdapterError("broker symbol does not permit the proposal direction")
         step = Decimal(str(symbol.volume_step))
         minimum = Decimal(str(symbol.volume_min))
