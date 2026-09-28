@@ -109,6 +109,7 @@ class RiskEngineTests(unittest.TestCase):
             (environment(global_enabled=False), "global bot"),
             (environment(emergency_stop=True), "emergency stop"),
             (environment(symbol_enabled=False), "disabled"),
+            (environment(asset_class_enabled=False), "asset class disabled"),
             (environment(strategy_enabled=False), "disabled"),
             (environment(market_open=False), "market closed"),
             (environment(quote_fresh=False), "stale"),

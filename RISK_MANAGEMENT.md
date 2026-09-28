@@ -4,7 +4,7 @@ Risk is a central gate, independent of strategy. Defaults are conservative and P
 
 ## Approval sequence
 
-1. Validate mode, global stop, account identity, symbol/strategy/class switches and disable policy.
+1. Validate mode, global stop, account identity, symbol/strategy/asset-class switches and disable policy.
 2. Validate fresh executable quote, market hours, spread, symbol trading constraints and candidate expiry.
 3. Validate direction, finite positive entry/SL/TP, stop side, achievable target and minimum RR.
 4. Compute worst-case monetary loss to stop from broker tick size/value, contract/currency conversion, volume step, commission and configured slippage allowance. Reject unknown or invalid instrument metadata; never guess tick value.

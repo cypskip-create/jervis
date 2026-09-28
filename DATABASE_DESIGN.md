@@ -4,6 +4,7 @@ PostgreSQL is the production target. Local SQLite can support isolated developme
 
 ## Core entities
 
+- `users`: normalized usernames, scrypt password hashes, enabled state and operator/admin/viewer role; password material is never returned by the API.
 - `accounts`: broker/server/account identifier (credential-free), currency, mode, metadata.
 - `symbols`: canonical symbol, asset class, precision/tick metadata source, enabled state and disable policy.
 - `symbol_mappings`: account/broker-specific mapping, validity interval, enabled state.

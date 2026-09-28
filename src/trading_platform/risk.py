@@ -146,6 +146,7 @@ class RiskEnvironment:
     quote_fresh: bool
     spread: Decimal
     maximum_spread: Decimal
+    asset_class_enabled: bool = True
     duplicate_signal: bool = False
 
     def __post_init__(self) -> None:
@@ -273,6 +274,8 @@ class RiskEngine:
             return reject("emergency stop active")
         if not environment.symbol_enabled:
             return reject(f"{proposal.symbol} disabled")
+        if not environment.asset_class_enabled:
+            return reject(f"{proposal.asset_class} asset class disabled")
         if not environment.strategy_enabled:
             return reject(f"{proposal.strategy_key} disabled")
         if not environment.market_open:
