@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import hashlib
 import importlib
+import math
 from dataclasses import dataclass
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
@@ -98,12 +99,8 @@ class MT5DemoAdapter:
         account = terminal.account_info()
         if info is None or account is None:
             raise MT5AdapterError("terminal or account information is unavailable")
-        if not info.connected or not info.trade_allowed:
-            raise MT5AdapterError("terminal is disconnected or trading is disabled")
-        if not getattr(account, "trade_allowed", False) or not getattr(
-            account, "trade_expert", False
-        ):
-            raise MT5AdapterError("account does not permit expert trading")
+        if not info.connected:
+            raise MT5AdapterError("terminal is disconnected")
         if account.trade_mode != terminal.ACCOUNT_TRADE_MODE_DEMO:
             raise MT5AdapterError("only MT5 demo accounts are permitted")
         if account.server != self.config.expected_server:
@@ -185,6 +182,14 @@ class MT5DemoAdapter:
         """
         terminal = self.terminal
         self.account_status()
+        info = terminal.terminal_info()
+        account = terminal.account_info()
+        if info is None or account is None or not info.trade_allowed:
+            raise MT5AdapterError("terminal trading is disabled")
+        if not getattr(account, "trade_allowed", False) or not getattr(
+            account, "trade_expert", False
+        ):
+            raise MT5AdapterError("account does not permit expert trading")
         if not volume.is_finite() or volume <= 0:
             raise MT5AdapterError("order volume must be finite and positive")
         if not terminal.symbol_select(broker_symbol, True):
@@ -266,8 +271,17 @@ def config_from_environment() -> MT5Config:
     server = os.environ.get("TRADING_PLATFORM_MT5_DEMO_SERVER", "")
     if not server.strip():
         raise MT5AdapterError("TRADING_PLATFORM_MT5_DEMO_SERVER must name the demo server")
+    try:
+        max_quote_age_seconds = float(
+            os.environ.get("TRADING_PLATFORM_MT5_MAX_QUOTE_AGE_SECONDS", "5")
+        )
+    except ValueError as exc:
+        raise MT5AdapterError("MT5 maximum quote age must be a number from 0 to 60") from exc
+    if not math.isfinite(max_quote_age_seconds) or not 0 < max_quote_age_seconds <= 60:
+        raise MT5AdapterError("MT5 maximum quote age must be greater than 0 and at most 60")
     return MT5Config(
         expected_server=server,
         allowed_account_ids=account_ids,
         terminal_path=os.environ.get("TRADING_PLATFORM_MT5_TERMINAL_PATH") or None,
+        max_quote_age=timedelta(seconds=max_quote_age_seconds),
     )

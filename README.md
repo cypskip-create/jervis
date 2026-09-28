@@ -51,7 +51,7 @@ For the optional Docker Compose deployment, see [docs/DEPLOYMENT_OPERATIONS.md](
 
 ## Optional MT5 demo adapter
 
-The adapter is an explicit Python API, isolated from dashboard commands. On Windows, install `pip install -e '.[mt5]'`, log in to the MT5 terminal UI with a demo account, and set `TRADING_PLATFORM_MT5_DEMO_SERVER` plus the positive, comma-separated `TRADING_PLATFORM_MT5_DEMO_ACCOUNT_IDS` allow-list. See the deployment runbook for other configuration. The adapter refuses real accounts, stale quotes, unknown symbols, unsupported volume/fill settings and known duplicate signal tags. It is not validated with a broker and has no durable order-intent ledger; do not use it unattended. All settings continue to reject live mode.
+The adapter is an explicit Python API, isolated from dashboard commands. On Windows, install `pip install -e '.[mt5]'`, log in to the MT5 terminal UI with a demo account, and set `TRADING_PLATFORM_MT5_DEMO_SERVER` plus the positive, comma-separated `TRADING_PLATFORM_MT5_DEMO_ACCOUNT_IDS` allow-list. `TRADING_PLATFORM_MT5_MAX_QUOTE_AGE_SECONDS` defaults to 5 and is bounded to 60 seconds. See the deployment runbook for other configuration. The adapter refuses real accounts, stale quotes, unknown symbols, unsupported volume/fill settings and known duplicate signal tags. It is not validated with a broker and has no durable order-intent ledger; do not use it unattended. All settings continue to reject live mode.
 
 Run `python -m trading_platform.readiness` to see the fail-closed evidence checklist. A completed checklist only permits a separate review and never enables live trading.
 

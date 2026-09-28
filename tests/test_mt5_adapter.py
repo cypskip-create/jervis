@@ -5,10 +5,16 @@ import unittest
 from datetime import UTC, datetime, timedelta
 from decimal import Decimal
 from types import SimpleNamespace
+from unittest.mock import patch
 
 from trading_platform.domain import TradeProposal
 from trading_platform.market_structure import Direction
-from trading_platform.mt5_adapter import MT5AdapterError, MT5Config, MT5DemoAdapter
+from trading_platform.mt5_adapter import (
+    MT5AdapterError,
+    MT5Config,
+    MT5DemoAdapter,
+    config_from_environment,
+)
 
 
 class FakeTerminal:
@@ -33,9 +39,16 @@ class FakeTerminal:
     ORDER_FILLING_FOK = 0
     ORDER_FILLING_IOC = 1
 
-    def __init__(self, *, trade_mode: int = 0, existing: tuple[object, ...] = ()) -> None:
+    def __init__(
+        self,
+        *,
+        trade_mode: int = 0,
+        existing: tuple[object, ...] = (),
+        terminal_trade_allowed: bool = True,
+    ) -> None:
         self.mode = trade_mode
         self.existing = existing
+        self.terminal_trade_allowed = terminal_trade_allowed
         self.positions: tuple[object, ...] | None = ()
         self.history: tuple[object, ...] | None = ()
         self.request: dict[str, object] | None = None
@@ -47,7 +60,7 @@ class FakeTerminal:
         pass
 
     def terminal_info(self) -> object:
-        return SimpleNamespace(connected=True, trade_allowed=True)
+        return SimpleNamespace(connected=True, trade_allowed=self.terminal_trade_allowed)
 
     def account_info(self) -> object:
         return SimpleNamespace(
@@ -121,6 +134,18 @@ class MT5AdapterTests(unittest.TestCase):
         adapter = MT5DemoAdapter(MT5Config("Demo-Server", frozenset({42})), FakeTerminal())
         self.assertEqual(adapter.connect().login, 42)
 
+    def test_read_only_connect_works_with_terminal_trading_disabled(self) -> None:
+        terminal = FakeTerminal(terminal_trade_allowed=False)
+        adapter = MT5DemoAdapter(MT5Config("Demo-Server", frozenset({42})), terminal)
+        self.assertEqual(adapter.connect().login, 42)
+
+    def test_order_is_blocked_when_terminal_algo_trading_is_disabled(self) -> None:
+        terminal = FakeTerminal(terminal_trade_allowed=False)
+        adapter = MT5DemoAdapter(MT5Config("Demo-Server", frozenset({42})), terminal)
+        with self.assertRaisesRegex(MT5AdapterError, "terminal trading is disabled"):
+            adapter.place_demo_market_order(proposal(), "EURUSD", Decimal("0.1"))
+        self.assertIsNone(terminal.request)
+
     def test_rejects_live_account_before_order_send(self) -> None:
         terminal = FakeTerminal(trade_mode=FakeTerminal.ACCOUNT_TRADE_MODE_REAL)
         adapter = MT5DemoAdapter(MT5Config("Demo-Server", frozenset({42})), terminal)
@@ -169,6 +194,34 @@ class MT5AdapterTests(unittest.TestCase):
     def test_requires_demo_account_allowlist(self) -> None:
         with self.assertRaisesRegex(ValueError, "allow-listed"):
             MT5Config("Demo-Server")
+
+    def test_environment_configures_server_allowlist_and_quote_age(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "TRADING_PLATFORM_MT5_DEMO_SERVER": "Demo-Server",
+                "TRADING_PLATFORM_MT5_DEMO_ACCOUNT_IDS": "42",
+                "TRADING_PLATFORM_MT5_MAX_QUOTE_AGE_SECONDS": "10",
+            },
+            clear=True,
+        ):
+            config = config_from_environment()
+        self.assertEqual(config.expected_server, "Demo-Server")
+        self.assertEqual(config.allowed_account_ids, frozenset({42}))
+        self.assertEqual(config.max_quote_age, timedelta(seconds=10))
+
+    def test_environment_rejects_unbounded_quote_age(self) -> None:
+        with patch.dict(
+            "os.environ",
+            {
+                "TRADING_PLATFORM_MT5_DEMO_SERVER": "Demo-Server",
+                "TRADING_PLATFORM_MT5_DEMO_ACCOUNT_IDS": "42",
+                "TRADING_PLATFORM_MT5_MAX_QUOTE_AGE_SECONDS": "61",
+            },
+            clear=True,
+        ):
+            with self.assertRaisesRegex(MT5AdapterError, "at most 60"):
+                config_from_environment()
 
     def test_position_snapshot_maps_to_shared_reconciliation_contract(self) -> None:
         terminal = FakeTerminal()
