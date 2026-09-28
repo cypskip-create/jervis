@@ -49,6 +49,7 @@ def load_settings() -> Settings:
     """Load defaults, optional TOML overrides, .env, then process environment."""
 
     values: dict[str, object] = {}
+    allowed = set(Settings.model_fields)
     config_path = Path(os.getenv("TRADING_PLATFORM_CONFIG", "config/defaults.toml"))
     if config_path.is_file():
         with config_path.open("rb") as config_file:
@@ -64,10 +65,14 @@ def load_settings() -> Settings:
                 continue
             key, value = line.split("=", maxsplit=1)
             if key.startswith("TRADING_PLATFORM_"):
-                values[key.removeprefix("TRADING_PLATFORM_").lower()] = value.strip().strip("\"'")
+                field = key.removeprefix("TRADING_PLATFORM_").lower()
+                if field in allowed:
+                    values[field] = value.strip().strip("\"'")
 
     for key, value in os.environ.items():
         if key.startswith("TRADING_PLATFORM_"):
-            values[key.removeprefix("TRADING_PLATFORM_").lower()] = value
+            field = key.removeprefix("TRADING_PLATFORM_").lower()
+            if field in allowed:
+                values[field] = value
 
     return Settings.model_validate(values)

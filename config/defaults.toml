@@ -1,6 +1,7 @@
 [application]
-name = "Quant MT5 Platform"
+app_name = "Quant MT5 Platform"
 mode = "paper"
+database_url = "sqlite:///./dev.sqlite3"
 global_enabled = false
 
 [risk]

@@ -25,6 +25,8 @@ Use unique constraints on signal IDs, order idempotency keys and broker ticket/a
 
 Use `NUMERIC` for prices, volumes and monetary values. Persist source time, ingest time and timezone-aware timestamps. JSONB is suitable for extensible evidence/metadata, not for core relational identities. Secrets and credentials belong in an OS secret store/environment, never in database settings, logs, frontend payloads or git.
 
-## Initial migrations
+## Implemented initial migration
 
-Phase 1 creates only the package/configuration foundation. Database connectivity and first migrations follow after domain contracts and risk reservation semantics are implemented and reviewable.
+Phase 3 provides SQLAlchemy models and an Alembic initial revision for accounts, symbols/mappings, strategies/immutable versions/config snapshots, signals (including rejections), risk snapshots/reservations, orders, positions, completed trades, market states, system/audit events, bot settings, backtests/trades and optimization runs. SQLite migration tests cover upgrade/downgrade; PostgreSQL remains the production target and needs a PostgreSQL service for integration verification.
+
+Risk reservation is transaction-scoped. `reserve_risk` locks the account row using `SELECT ... FOR UPDATE`, computes current held/submitted reservations and open filled reservations, then inserts a unique reservation before the caller commits. PostgreSQL provides the intended per-account row serialization. SQLite is for development only and does not guarantee equivalent concurrent-writer behavior.
