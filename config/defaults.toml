@@ -1,0 +1,19 @@
+[application]
+name = "Quant MT5 Platform"
+mode = "paper"
+global_enabled = false
+
+[risk]
+# Explicit null means unset. Do not enable autonomous execution until configured and tested.
+risk_per_trade_fraction = 0.0025
+max_daily_loss_fraction = 0.01
+max_weekly_loss_fraction = 0.02
+max_drawdown_fraction = 0.05
+max_open_positions = 3
+max_total_open_risk_fraction = 0.01
+
+[symbols]
+enabled = ["XAUUSD", "NAS100", "EURUSD", "GBPUSD", "USDJPY", "AUDUSD", "USDCAD", "USDCHF"]
+
+[symbol_mappings]
+# Fill broker-specific symbols only after the target broker is known.
