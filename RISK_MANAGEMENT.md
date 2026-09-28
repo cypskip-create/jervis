@@ -9,7 +9,7 @@ Risk is a central gate, independent of strategy. Defaults are conservative and P
 3. Validate direction, finite positive entry/SL/TP, stop side, achievable target and minimum RR.
 4. Compute worst-case monetary loss to stop from broker tick size/value, contract/currency conversion, volume step, commission and configured slippage allowance. Reject unknown or invalid instrument metadata; never guess tick value.
 5. Check max per-trade, daily/weekly loss, drawdown, concurrent trades, portfolio reserved/open risk, class/symbol/currency exposure, margin and correlation policy.
-6. Atomically reserve risk against a fresh portfolio snapshot. Concurrent proposals cannot each consume the same headroom.
+6. Atomically reserve risk against a fresh portfolio snapshot. Filled and pending platform reservations remain the durable source for managed risk and exposure; snapshot baseline fields contain only manual/untracked positions so exposure is not counted twice. Concurrent proposals cannot each consume the same headroom.
 7. Immediately revalidate mutable switches/quote/limits before execution. Submit only once with idempotency key; reconcile outcome before retry.
 
 ## Limits

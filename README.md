@@ -4,7 +4,7 @@ Research-first multi-market trading platform centered on MT5. The initial reposi
 
 ## Project status
 
-Phases 0 through 3 have a tested baseline. PostgreSQL concurrency verification and market-specific session/key-level providers remain deployment/research work. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for acceptance criteria and [ARCHITECTURE.md](ARCHITECTURE.md) for service boundaries.
+Phases 0 through 6 have a tested baseline, including centralized risk, proposal-only strategy engines, and paper execution/reconciliation. PostgreSQL concurrency verification, broker integration, and market-specific session/key-level providers remain future work. See [IMPLEMENTATION_PLAN.md](IMPLEMENTATION_PLAN.md) for acceptance criteria and [ARCHITECTURE.md](ARCHITECTURE.md) for service boundaries.
 
 ## Requirements
 

@@ -159,6 +159,50 @@ class PersistenceTests(unittest.TestCase):
         with self.assertRaises(IntegrityError):
             self.session.commit()
 
+    def test_reservations_atomically_hold_dimension_and_position_capacity(self) -> None:
+        now = datetime.now(UTC)
+        reserve_risk(
+            self.session,
+            account_id=self.account.id,
+            signal_id=self.signal.id,
+            amount=Decimal("1"),
+            maximum_total=Decimal("10"),
+            expires_at=now + timedelta(minutes=5),
+            now=now,
+            exposure_commitments={"currency:EUR": Decimal("60")},
+            exposure_limits={"currency:EUR": Decimal("100")},
+            currently_open_positions=0,
+            maximum_positions=1,
+        )
+        self.session.commit()
+        second_signal = self._add_signal("sig-capacity")
+        with self.assertRaisesRegex(ReservationRejected, "positions"):
+            reserve_risk(
+                self.session,
+                account_id=self.account.id,
+                signal_id=second_signal.id,
+                amount=Decimal("1"),
+                maximum_total=Decimal("10"),
+                expires_at=now + timedelta(minutes=5),
+                now=now,
+                currently_open_positions=0,
+                maximum_positions=1,
+            )
+
+        third_signal = self._add_signal("sig-exposure")
+        with self.assertRaisesRegex(ReservationRejected, "currency:EUR exposure"):
+            reserve_risk(
+                self.session,
+                account_id=self.account.id,
+                signal_id=third_signal.id,
+                amount=Decimal("1"),
+                maximum_total=Decimal("10"),
+                expires_at=now + timedelta(minutes=5),
+                now=now,
+                exposure_commitments={"currency:EUR": Decimal("50")},
+                exposure_limits={"currency:EUR": Decimal("100")},
+            )
+
     def _add_signal(self, key: str) -> Signal:
         signal = Signal(
             signal_key=key,

@@ -177,6 +177,9 @@ class RiskReservation(Base):
     account_id: Mapped[str] = mapped_column(ForeignKey("accounts.id", ondelete="CASCADE"))
     signal_id: Mapped[str] = mapped_column(ForeignKey("signals.id", ondelete="RESTRICT"))
     amount: Mapped[Decimal] = mapped_column(Numeric(24, 8), nullable=False)
+    exposure_commitments: Mapped[dict[str, str]] = mapped_column(
+        JSON, nullable=False, default=dict
+    )
     state: Mapped[str] = mapped_column(String(16), nullable=False, default="held")
     expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
@@ -222,6 +225,8 @@ class Position(Base):
     entry_price: Mapped[Decimal] = mapped_column(Numeric(24, 10), nullable=False)
     stop_loss: Mapped[Decimal | None] = mapped_column(Numeric(24, 10))
     take_profit: Mapped[Decimal | None] = mapped_column(Numeric(24, 10))
+    max_favorable_price: Mapped[Decimal] = mapped_column(Numeric(24, 10), nullable=False)
+    max_adverse_price: Mapped[Decimal] = mapped_column(Numeric(24, 10), nullable=False)
     opened_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     last_reconciled_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
     state: Mapped[str] = mapped_column(String(24), nullable=False, default="open")
